@@ -10,6 +10,16 @@ fn main() {
     println!("{:?}", args);
     for arg in args  {
         match arg.as_str() {
+            "-a" => {
+                open_test();
+                mkdir_test();
+                rename_test();
+                chown_test();
+                chmod_test();
+                fstat_test();
+                remove_test();
+                truncate_test();
+            }
             "open" => {
                 open_test();
             }
