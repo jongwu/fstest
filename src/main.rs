@@ -8,6 +8,7 @@ use std::time::{Instant};
 
 static TEST_FILE: &str = "/tmp/foo";
 static TEST_NUM: i32 = 100000;
+static TEST_DIR: &str = "/tmp/fstest/";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -55,13 +56,17 @@ fn main() {
     }
 }
 
-fn init_file() -> Result<File, io::Error> {
+fn init_file(v: &mut Vec<String>) -> Result<File, io::Error> {
     let num = TEST_NUM;
+    if !Path::new(TEST_DIR).exists() {
+        fs::create_dir(TEST_DIR).unwrap();
+    }
     for i in 1..num {
-        let mut basename = String::from("/tmp/tmp");
+        let mut basename = String::from(TEST_DIR);
         let filename = basename + &i.to_string();
         let file = Path::new(&filename);
         File::create(&file).unwrap();
+        v.push(filename);
     }
     let f = Path::new(TEST_FILE);
     File::create(&f)
@@ -69,22 +74,19 @@ fn init_file() -> Result<File, io::Error> {
 
 fn open_test() {
     println!("call open");
-    let num = TEST_NUM;
-    let file = String::from("foo");
-    let f = Path::new(&file);
-    File::create(&f).unwrap();
-    init_file();
+    let mut v: Vec<String> = Vec::new();
+    init_file(&mut v);
     let now = Instant::now();
-    for i in 1..num {
-//        let mut basename = String::from("/tmp/tmp");
-//        let filename = basename + &i.to_string();
-//        let _f = File::open(&filename).unwrap();
+    if (v.len() == 0) {
+        println!("file base is empty");
+        panic!();
+    }
+    for file in v.iter() {
         let _f = File::open(&file).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
-    let ops = num * 1000 / duration;
+    let ops = TEST_NUM * 1000 / duration;
     println!("open file rate is {}/s", ops);
-    fs::remove_file(f).unwrap();
 }
 
 fn mkdir_test() {
@@ -93,16 +95,15 @@ fn mkdir_test() {
 
 fn rename_test() {
     println!("call rename");
-    let tmp_file: &str = "/tmp/tmp";
-    let num = 100000;
-    init_file();
+    let tmp_file: &str = &(String::from(TEST_DIR) + "tmp");
+    let mut v: Vec<String> = Vec::new();
+    init_file(&mut v);
     let now = Instant::now();
-    for _i in 1..num {
-        let _f = fs::rename(TEST_FILE, tmp_file).unwrap();
-        let _f = fs::rename(tmp_file, TEST_FILE).unwrap();
+    for file in v.iter(){
+        let _f = fs::rename(file, tmp_file).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
-    let ops = num * 2000 / duration;
+    let ops = TEST_NUM * 1000 / duration;
     println!("open file rate is {}/s", ops);
     fs::remove_file(TEST_FILE).unwrap();
 }
@@ -118,13 +119,15 @@ fn chmod_test() {
 fn fstat_test() {
     println!("call fstat");
     let num = TEST_NUM;
-    let f = init_file().unwrap();
+    let mut v: Vec<String> = Vec::new();
+    let f = init_file(&mut v).unwrap();
+    let mut path: Vec<&Path> = Vec::new();
+    for file in v.iter() {
+        let f = Path::new(file);
+        path.push(f);
+    }
     let now = Instant::now();
-    for i in 1..num {
-        let basename = String::from("/tmp/tmp");
-        let filename = basename + &i.to_string();
-        let home = Path::new("/home");
-        let f = Path::new(&filename);
+    for f in path.iter() {
         f.metadata().unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
@@ -136,16 +139,15 @@ fn fstat_test() {
 
 fn remove_test() {
     println!("call remove");
-    let num = 100000;
-    let file: &str = "foo";
-    let f = Path::new(&file);
+    let mut v: Vec<String> = Vec::new();
+    init_file(&mut v);
     let now = Instant::now();
-    for _i in 1..num {
-        File::create(&f).unwrap();
+    for f in v.iter() {
+//        File::create(&f).unwrap();
         fs::remove_file(f).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
-    let ops = num * 1000 / duration;
+    let ops = TEST_NUM * 1000 / duration;
     println!("open file rate is {}/s", ops);
 }
 
