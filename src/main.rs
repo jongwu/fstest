@@ -56,11 +56,15 @@ fn main() {
     }
 }
 
-fn init_file(v: &mut Vec<String>) -> Result<File, io::Error> {
-    let num = TEST_NUM;
+fn init_dir() {
     if !Path::new(TEST_DIR).exists() {
         fs::create_dir(TEST_DIR).unwrap();
     }
+}
+
+fn init_file(v: &mut Vec<String>) -> Result<File, io::Error> {
+    let num = TEST_NUM;
+    init_dir();
     for i in 1..num {
         let mut basename = String::from(TEST_DIR);
         let filename = basename + &i.to_string();
@@ -82,15 +86,31 @@ fn open_test() {
         panic!();
     }
     for file in v.iter() {
+        println!("file is {:?}", file);
         let _f = File::open(&file).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
     let ops = TEST_NUM * 1000 / duration;
     println!("open file rate is {}/s", ops);
+    clean_up();
 }
 
 fn mkdir_test() {
-    println!("call mkdri");
+    println!("call mkdir");
+    init_dir();
+    let num = TEST_NUM;
+    let mut dir: &str = "tmp";
+    let now = Instant::now();
+    for i in 1..num {
+        let basename = String::from(TEST_DIR);
+        let d = basename + &i.to_string();
+        let path = Path::new(&d);
+        fs::create_dir(path).unwrap();
+    }
+    let duration: i32 = now.elapsed().as_millis() as i32;
+    let ops = TEST_NUM * 1000 / duration;
+    println!("create directory rate is {}/s", ops);
+    clean_up();
 }
 
 fn rename_test() {
@@ -104,8 +124,9 @@ fn rename_test() {
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
     let ops = TEST_NUM * 1000 / duration;
-    println!("open file rate is {}/s", ops);
+    println!("rename file rate is {}/s", ops);
     fs::remove_file(TEST_FILE).unwrap();
+    clean_up();
 }
 
 fn chown_test() {
@@ -134,7 +155,6 @@ fn fstat_test() {
     let ops = num * 1000 / duration;
     println!("read file metadata rate is {}/s", ops);
     clean_up();
-//    println!("metadata of file is {:?}", metadata);
 }
 
 fn remove_test() {
@@ -143,12 +163,12 @@ fn remove_test() {
     init_file(&mut v);
     let now = Instant::now();
     for f in v.iter() {
-//        File::create(&f).unwrap();
         fs::remove_file(f).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
     let ops = TEST_NUM * 1000 / duration;
-    println!("open file rate is {}/s", ops);
+    println!("remove file rate is {}/s", ops);
+    clean_up();
 }
 
 fn truncate_test() {
@@ -156,11 +176,8 @@ fn truncate_test() {
 }
 
 fn clean_up() {
-    let num = TEST_NUM;
-    for i in 1..num {
-        let basename = String::from("/tmp/tmp");
-        let filename = basename + &i.to_string();
-        fs::remove_file(&filename).unwrap();
+    let basename = String::from(TEST_DIR);
+    if !Path::new(TEST_DIR).exists() {
+        fs::remove_dir_all(&basename).unwrap();
     }
-    fs::remove_file(TEST_FILE).unwrap();
 }
