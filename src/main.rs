@@ -19,10 +19,11 @@ fn main() {
                 open_test();
                 mkdir_test();
                 rename_test();
-                chown_test();
-                chmod_test();
                 fstat_test();
                 remove_test();
+                read_dir_test();
+                chown_test();
+                chmod_test();
                 truncate_test();
             }
             "open" => {
@@ -49,6 +50,9 @@ fn main() {
             "truncate" => {
                 truncate_test();
             }
+            "read_dir" => {
+                read_dir_test();
+            }
             &_ => {
                 ()
             }
@@ -57,14 +61,16 @@ fn main() {
 }
 
 fn init_dir() {
-    if !Path::new(TEST_DIR).exists() {
-        fs::create_dir(TEST_DIR).unwrap();
+    if Path::new(TEST_DIR).exists() {
+        clean_up();
     }
+    fs::create_dir(TEST_DIR).unwrap();
 }
 
 fn init_file(v: &mut Vec<String>) -> Result<File, io::Error> {
     let num = TEST_NUM;
     init_dir();
+    
     for i in 1..num {
         let mut basename = String::from(TEST_DIR);
         let filename = basename + &i.to_string();
@@ -73,20 +79,19 @@ fn init_file(v: &mut Vec<String>) -> Result<File, io::Error> {
         v.push(filename);
     }
     let f = Path::new(TEST_FILE);
-    File::create(&f)
+    return File::create(&f);
 }
 
 fn open_test() {
     println!("call open");
     let mut v: Vec<String> = Vec::new();
     init_file(&mut v);
-    let now = Instant::now();
     if (v.len() == 0) {
         println!("file base is empty");
         panic!();
     }
+    let now = Instant::now();
     for file in v.iter() {
-        println!("file is {:?}", file);
         let _f = File::open(&file).unwrap();
     }
     let duration: i32 = now.elapsed().as_millis() as i32;
@@ -126,6 +131,22 @@ fn rename_test() {
     let ops = TEST_NUM * 1000 / duration;
     println!("rename file rate is {}/s", ops);
     fs::remove_file(TEST_FILE).unwrap();
+    clean_up();
+}
+
+fn read_dir_test() {
+    println!("read directory test");
+    let num = TEST_NUM;
+    let mut v: Vec<String> = Vec::new();
+    init_file(&mut v);
+
+    let now = Instant::now();
+    for _i in 1..num {
+        fs::read_dir(&Path::new(TEST_DIR)).unwrap();
+    }
+    let duration: i32 = now.elapsed().as_millis() as i32;
+    let ops = num * 1000 / duration;
+    println!("read directory rate is {}/s", ops);
     clean_up();
 }
 
@@ -177,7 +198,7 @@ fn truncate_test() {
 
 fn clean_up() {
     let basename = String::from(TEST_DIR);
-    if !Path::new(TEST_DIR).exists() {
+    if Path::new(TEST_DIR).exists() {
         fs::remove_dir_all(&basename).unwrap();
     }
 }
